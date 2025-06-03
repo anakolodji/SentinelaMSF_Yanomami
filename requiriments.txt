@@ -1,0 +1,9 @@
+pandas
+numpy
+matplotlib
+geopandas
+rasterio
+opencv-python
+folium
+streamlit
+scikit-learn
