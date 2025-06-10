@@ -34,28 +34,41 @@ def get_enchentes():
 
 # Sidebar para filtros
 st.sidebar.header("Filtros de Risco")
-risco_filter = st.sidebar.selectbox("Nível de Risco", ["Todos", "alto", "medio", "baixo"])
+st.sidebar.markdown("""
+Selecione o nível de risco para filtrar as predições exibidas. 
+- **Alto**: Municípios com risco elevado de eventos críticos.
+- **Médio**: Atenção moderada.
+- **Baixo**: Situação controlada.
+""")
+risco_filter = st.sidebar.selectbox("Nível de Risco", ["Todos", "alto", "medio", "baixo"], help="Filtre as predições de risco exibidas na tabela e no mapa.")
 
 # Botão para atualizar alertas
 if st.sidebar.button("Atualizar Alertas Climáticos"):
     from sentinela.ingest_weather import ingest_weather_alerts
     ingest_weather_alerts()
     st.sidebar.success("Alertas atualizados!")
+    st.sidebar.info("Os dados são obtidos da WeatherAPI e salvos localmente.")
 
 # Exibir alertas recentes
-st.subheader("Últimos Alertas Climáticos")
+st.subheader("Últimos Alertas Climáticos 🛰️")
+st.markdown("""
+Os alertas abaixo são provenientes da WeatherAPI/INMET e representam eventos climáticos críticos recentes para a região monitorada.
+""")
 alertas = get_alertas()
 if alertas:
     for alerta in alertas[:5]:
-        st.warning(f"[{alerta.data_emissao.strftime('%d/%m/%Y %H:%M')}] {alerta.tipo} - {alerta.regiao}\n{alerta.descricao}")
+        st.warning(f"<span style='font-size:16px;'>{alerta.data_emissao.strftime('%d/%m/%Y %H:%M')}</span> <b>{alerta.tipo}</b> - <b>{alerta.regiao}</b><br>{alerta.descricao}", icon="⚠️", unsafe_allow_html=True)
 else:
     st.info("Nenhum alerta recente disponível.")
 
 # Exibir estatísticas rápidas
-st.subheader("Estatísticas de Risco")
+st.subheader("Estatísticas de Risco 📊")
+st.markdown("""
+A tabela mostra os 5 municípios atualmente com maior risco, segundo o modelo de predição. O score indica a intensidade do risco.
+""")
 predicoes = get_predicoes()
 if predicoes:
-    df_pred = pd.DataFrame([{ 'Município': p.municipio, 'Risco': p.risco, 'Score': p.score } for p in predicoes])
+    df_pred = pd.DataFrame([{ 'Município': p.municipio, 'Risco': p.risco, 'Score': p.score, 'Fatores': getattr(p, 'fatores', 'N/A') } for p in predicoes])
     if risco_filter != "Todos":
         df_pred = df_pred[df_pred['Risco'] == risco_filter]
     top5 = df_pred.sort_values('Score', ascending=False).head(5)
@@ -64,7 +77,10 @@ else:
     st.info("Sem predições de risco disponíveis.")
 
 # Mapa interativo
-st.subheader("Mapa de Risco e Enchentes")
+st.subheader("Mapa de Risco e Enchentes 🗺️")
+st.markdown("""
+No mapa abaixo, marcadores <span style='color:red'><b>vermelhos</b></span> indicam municípios com risco ALTO, e círculos <span style='color:blue'><b>azuis</b></span> indicam enchentes detectadas. Passe o mouse sobre os marcadores para detalhes.
+"", unsafe_allow_html=True)
 mapa = folium.Map(location=[-0.5, -64.5], zoom_start=6)
 
 # Adicionar marcadores de enchentes
@@ -82,21 +98,26 @@ for ench in enchentes:
 # Adicionar marcadores de risco alto
 for p in predicoes:
     if p.risco == "alto":
+        fatores = getattr(p, 'fatores', None)
+        popup_text = f"{p.municipio}: <b>Risco ALTO</b> ({p.score:.2f})"
+        if fatores:
+            popup_text += f"<br><i>Fatores: {fatores}</i>"
         folium.Marker(
             location=[-0.5, -64.5],  # Ajustar para coordenadas reais se disponíveis
-            popup=f"{p.municipio}: Risco ALTO ({p.score:.2f})",
+            popup=popup_text,
             icon=folium.Icon(color="red", icon="exclamation-sign")
         ).add_to(mapa)
 
 st_folium(mapa, width=900, height=500)
 
 # Evolução dos casos de malária
-st.subheader("Evolução dos Casos de Malária")
+st.subheader("Evolução dos Casos de Malária 🦟")
+st.markdown("""
+A linha abaixo mostra a evolução temporal do número de casos de malária reportados na base histórica.
+""")
 casos = get_malaria_casos()
 if casos:
     df_casos = pd.DataFrame([{ 'Município': c.municipio, 'Data': c.data, 'Casos': c.casos } for c in casos])
     st.line_chart(df_casos.groupby('Data')['Casos'].sum())
 else:
     st.info("Sem dados históricos de malária.")
-
-# (Opcional) Mapa e visualização espacial podem ser adicionados com folium/streamlit-folium

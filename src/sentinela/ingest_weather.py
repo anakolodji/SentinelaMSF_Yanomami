@@ -3,9 +3,12 @@ import requests
 from datetime import datetime
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
+import logging
 from sentinela.db import AlertaINMET, SessionLocal, Base, engine
+from sentinela.utils import setup_logging
 
 load_dotenv()
+setup_logging()
 
 # Configurações
 API_KEY = os.getenv('WEATHER_API_KEY')
@@ -31,17 +34,14 @@ def fetch_weather_alerts(region):
         return None
 
 def save_alerts_to_db(alerts, region_name, db: Session):
-    # Adicionar log para depuração
-    print('DEBUG: Conteúdo dos alerts retornados:', alerts)
-    # A estrutura correta da WeatherAPI pode variar, normalmente é alerts['alerts']['alert']
+    logging.info(f'Processando alertas para região: {region_name}')
     alert_list = []
     if 'alerts' in alerts and 'alert' in alerts['alerts']:
         alert_list = alerts['alerts']['alert']
     if not alert_list:
-        print(f"Nenhum alerta encontrado para {region_name}.")
+        logging.info(f"Nenhum alerta encontrado para {region_name}.")
         return
     for alert in alert_list:
-        # A WeatherAPI pode não ter o campo 'date', normalmente é 'effective' ou 'expires'
         data_emissao_str = alert.get('effective') or alert.get('expires') or alert.get('date')
         if data_emissao_str:
             try:
@@ -50,6 +50,15 @@ def save_alerts_to_db(alerts, region_name, db: Session):
                 data_emissao = datetime.now()
         else:
             data_emissao = datetime.now()
+        # Controle de duplicidade: verifica se já existe alerta igual
+        exists = db.query(AlertaINMET).filter_by(
+            regiao=region_name,
+            data_emissao=data_emissao,
+            tipo=alert.get('event', 'N/A')
+        ).first()
+        if exists:
+            logging.info(f'Alerta duplicado ignorado: {region_name} - {data_emissao}')
+            continue
         db_alert = AlertaINMET(
             regiao=region_name,
             data_emissao=data_emissao,
@@ -58,6 +67,8 @@ def save_alerts_to_db(alerts, region_name, db: Session):
             fonte=alert.get('source', 'WeatherAPI')
         )
         db.add(db_alert)
+        logging.info(f'Alerta salvo: {region_name} - {data_emissao}')
+    db.commit()
     db.commit()
 
 
@@ -70,6 +81,10 @@ def ingest_weather_alerts():
     db.close()
 
 if __name__ == "__main__":
+    setup_logging()
     Base.metadata.create_all(bind=engine)
-    ingest_weather_alerts()
-    print("Ingestão de alertas climáticos concluída.")
+    try:
+        ingest_weather_alerts()
+        logging.info("Ingestão de alertas climáticos concluída.")
+    except Exception as e:
+        logging.error(f"Erro na ingestão de alertas climáticos: {e}")
