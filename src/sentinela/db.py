@@ -46,6 +46,19 @@ class PredicaoRisco(Base):
     risco = Column(String)  # baixo, medio, alto
     score = Column(Float)
 
+class VulnerabilidadeInundacao(Base):
+    __tablename__ = 'vulnerabilidade_inundacoes'
+    id = Column(Integer, primary_key=True, index=True)
+    municipio = Column(String, index=True)
+    ano = Column(Integer, index=True)
+    indice_vulnerabilidade = Column(Float)
+    area_indigena = Column(Float)
+    area_urbana = Column(Float)
+    area_rural = Column(Float)
+    area_garimpo = Column(Float)
+    area_assentamento = Column(Float)
+    total_geral = Column(Float)
+
 # Inicializar banco
 if __name__ == "__main__":
     Base.metadata.create_all(bind=engine)
