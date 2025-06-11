@@ -1,5 +1,38 @@
 # Sentinela MSF - Yanomami
 
+## Visão Geral
+
+Esta plataforma foi desenvolvida para apoiar o MSF (Médicos Sem Fronteiras) na alocação eficiente de recursos e monitoramento de surtos de malária em regiões vulneráveis a enchentes, integrando dados ambientais, epidemiológicos, geoespaciais e climáticos.
+
+- **Notebook principal:** `notebooks/SentinelaMSF_MSF_final.ipynb`
+- **Painel interativo:** Streamlit (`src/sentinela/services/app.py`)
+- **Integração climática:** Weather API (chave no arquivo `.env`)
+
+## Funcionalidades
+- Ingestão e processamento de dados ambientais, malária, enchentes e alertas.
+- Engenharia de atributos e modelagem preditiva de risco.
+- Visualização geoespacial dos riscos e alertas em tempo real.
+- Consulta de condições climáticas atuais por município.
+
+## Como executar o painel Streamlit
+
+1. Instale as dependências:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Configure sua chave da Weather API no arquivo `.env` na raiz do projeto:
+   ```env
+   WEATHER_API_KEY=suachaveaqui
+   ```
+3. Execute o painel:
+   ```bash
+   streamlit run src/sentinela/services/app.py
+   ```
+4. Acesse o painel pelo navegador no endereço exibido (ex: http://localhost:8501)
+
+## Como utilizar o notebook
+Abra o arquivo `notebooks/SentinelaMSF_MSF_final.ipynb` em seu ambiente Jupyter ou Colab para explorar todas as etapas do pipeline, desde a ingestão até a visualização dos resultados.
+
 ## Estrutura do Projeto
 
 ```

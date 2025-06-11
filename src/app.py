@@ -4,8 +4,35 @@ import pandas as pd
 from sentinela.db import SessionLocal, AlertaINMET, MalariaCaso, EnchenteDetectada, PredicaoRisco
 import folium
 from streamlit_folium import st_folium
+import os
+import requests
+from dotenv import load_dotenv
 
 st.title("SentinelaMSF Yanomami: Monitoramento de Riscos")
+
+# Carrega a chave da Weather API do .env (ajuste o caminho se necessário)
+load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
+WEATHER_API_KEY = os.getenv('WEATHER_API_KEY')
+
+def get_weather(city):
+    """
+    Consulta a Weather API e retorna um dicionário com as condições climáticas atuais da cidade.
+    """
+    url = f"http://api.weatherapi.com/v1/current.json?key={WEATHER_API_KEY}&q={city}&lang=pt"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "condicao": data["current"]["condition"]["text"],
+                "temp_c": data["current"]["temp_c"],
+                "umidade": data["current"]["humidity"],
+                "vento_kph": data["current"]["wind_kph"]
+            }
+        else:
+            return None
+    except Exception:
+        return None
 
 # Funções utilitárias para consulta ao banco
 def get_alertas():
